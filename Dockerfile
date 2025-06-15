@@ -2,18 +2,22 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    git \
-    curl \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+COPY app.py .
 
-RUN git clone https://github.com/pigzillaaaaa/daddylive .
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install flask curl-cffi m3u8 gunicorn
+RUN pip install gunicorn
 
 EXPOSE 7860
 
-CMD ["gunicorn", "--workers", "5", "--worker-class", "gthread", "--threads", "4", "--bind", "0.0.0.0:7860", "proxy:app"]
+CMD ["gunicorn", "app:app", \
+     "-w", "4", \
+     "--worker-class", "gevent", \
+     "--worker-connections", "100", \
+     "-b", "0.0.0.0:7860", \
+     "--timeout", "120", \
+     "--keep-alive", "5", \
+     "--max-requests", "1000", \
+     "--max-requests-jitter", "100"]
